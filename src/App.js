@@ -6,19 +6,47 @@ import { nanoid } from 'nanoid'
 
 export default function App() {
 
-    const [notes, setNotes] = React.useState([])
+    const [notes, setNotes] = React.useState(
+        () => JSON.parse(localStorage.getItem('notes')) || []
+    )
+    const [currentNoteId, setCurrentNoteId] = React.useState(
+        (notes[0] && notes[0].id) || ''
+    )
+
+    React.useEffect(() => {
+        localStorage.setItem('notes', JSON.stringify(notes))
+    }, [notes])
 
     function addNewNote() {
         const newNote = {
-            content: '# Type a title here',
-            id: nanoid()
+            body: '# Type a title here',
+            id: nanoid(),
         }
-        setNotes(prevState => {
-            return [newNote, ...prevState]
-        })
+        setNotes(prevState => [newNote, ...prevState])
+        setCurrentNoteId(newNote.id)
     }
 
-    console.log(notes)
+    function findCurrentNote() {
+        const notesFound = notes.find(note => note.id === currentNoteId)
+        return notesFound ? notesFound : notes[0]
+    }
+
+    function assignCurrentNote(id) {
+        setCurrentNoteId(id)
+    }
+
+    function updateNote(text) {
+        let currentNote = notes.find(note => note.id === currentNoteId)
+        currentNote = {...currentNote, body: text}
+        const oldNotes = notes.filter(note => note.id !== currentNoteId)
+
+        setNotes([currentNote, ...oldNotes])
+    }
+
+    function deleteNote(event, id) {
+        event.stopPropagation()
+        setNotes(prevState => prevState.filter(note => note.id !== id))
+    }
 
     return(
         <main className="App">
@@ -33,9 +61,16 @@ export default function App() {
 
                         <Sidebar
                             notes={notes}
+                            addNewNote={addNewNote}
+                            currentNote={findCurrentNote()}
+                            assignCurrentNote={assignCurrentNote}
+                            deleteNote={deleteNote}
                         />
 
-                        <Editor />
+                        <Editor
+                            currentNote={findCurrentNote()}
+                            updateNote={updateNote}
+                        />
                     </Split>
 
                 : <section className="no-notes">
